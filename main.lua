@@ -7,140 +7,126 @@ for _, v in pairs(CoreGui:GetChildren()) do
 end
 
 local Screen = Instance.new("ScreenGui", CoreGui)
-Screen.Name = "Ersultan_V6"
+Screen.Name = "Ersultan_V8_Final"
 Screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 local isMobile = UserInputService.TouchEnabled
--- Сделали размер более компактным, чтобы не было пустого места
 local mainSize = isMobile and UDim2.new(0, 480, 0, 260) or UDim2.new(0, 520, 0, 300)
 local mainPos = UDim2.new(0.5, -mainSize.X.Offset/2, 0.5, -mainSize.Y.Offset/2)
 
-local Main = Instance.new("Frame", Screen)
-Main.Name = "MainFrame"
-Main.Size = mainSize
-Main.Position = mainPos
-Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-Main.BorderSizePixel = 0
-Main.ClipsDescendants = true
-Main.Active = true
-Main.Draggable = true
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-
--- САЙДБАР (Сделали чуть уже)
-local SideBar = Instance.new("Frame", Main)
-SideBar.Size = UDim2.new(0, 60, 1, 0)
-SideBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-SideBar.BorderSizePixel = 0
-Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
-
-local Content = Instance.new("Frame", Main)
-Content.Size = UDim2.new(1, -75, 1, -10)
-Content.Position = UDim2.new(0, 75, 0, 5)
-Content.BackgroundTransparency = 1
-
--- 1. СПИСОК СКРИПТОВ (РАБОЧИЙ)
-local ScriptList = Instance.new("ScrollingFrame", Content)
-ScriptList.Size = UDim2.new(0.3, 0, 0.75, 0)
-ScriptList.Position = UDim2.new(0, 0, 0, 5)
-ScriptList.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
-ScriptList.BorderSizePixel = 0
-ScriptList.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScriptList.AutomaticCanvasSize = Enum.AutomaticSize.Y
-Instance.new("UICorner", ScriptList)
-
-local UIList = Instance.new("UIListLayout", ScriptList)
-UIList.Padding = UDim.new(0, 5)
-Instance.new("UIPadding", ScriptList).PaddingTop = UDim.new(0, 5)
-
--- 2. ПОЛЕ ВВОДА (Плотное прилегание)
-local Editor = Instance.new("TextBox", Content)
-Editor.Size = UDim2.new(0.68, 0, 0.75, 0)
-Editor.Position = UDim2.new(0.32, 0, 0, 5)
-Editor.BackgroundColor3 = Color3.fromRGB(5, 5, 5)
-Editor.Text = ""
-Editor.PlaceholderText = " Вставь скрипт..."
-Editor.TextColor3 = Color3.new(1, 1, 1)
-Editor.MultiLine = true
-Editor.ClearTextOnFocus = false
-Editor.TextXAlignment = "Left"
-Editor.TextYAlignment = "Top"
-Editor.TextWrapped = true
-Instance.new("UICorner", Editor)
-Instance.new("UIPadding", Editor).PaddingLeft = UDim.new(0, 8)
-
--- ФУНКЦИЯ СОЗДАНИЯ СЛОТА
-local slotCount = 0
-local function AddSlot(name, code)
-    slotCount = slotCount + 1
-    local btn = Instance.new("TextButton", ScriptList)
-    btn.Size = UDim2.new(0.9, 0, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    btn.Text = name or "Slot " .. slotCount
-    btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
-    Instance.new("UICorner", btn)
-    
-    local savedCode = code or ""
-    
-    btn.MouseButton1Click:Connect(function()
-        Editor.Text = savedCode
+-- [ СИСТЕМА ПЕРЕМЕЩЕНИЯ ]
+local function MakeDraggable(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
     end)
-    
-    -- Сохранение текста в слот при изменении в редакторе (опционально)
-    Editor.FocusLost:Connect(function()
-        if Editor.Text ~= "" then savedCode = Editor.Text end
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
     end)
 end
 
--- НИЖНИЕ КНОПКИ
+local Main = Instance.new("Frame", Screen)
+Main.Size = mainSize; Main.Position = mainPos; Main.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Main.BorderSizePixel = 0; Main.ClipsDescendants = true; Main.Active = true; MakeDraggable(Main)
+Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
+
+local SideBar = Instance.new("Frame", Main)
+SideBar.Size = UDim2.new(0, 60, 1, 0); SideBar.BackgroundColor3 = Color3.fromRGB(22, 22, 22); SideBar.BorderSizePixel = 0
+Instance.new("UICorner", SideBar).CornerRadius = UDim.new(0, 12)
+
+local Content = Instance.new("Frame", Main)
+Content.Size = UDim2.new(1, -75, 1, -20); Content.Position = UDim2.new(0, 75, 0, 10); Content.BackgroundTransparency = 1
+
+local ScriptList = Instance.new("ScrollingFrame", Content)
+ScriptList.Size = UDim2.new(0, 140, 0.78, 0); ScriptList.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+ScriptList.AutomaticCanvasSize = "Y"; ScriptList.ScrollBarThickness = 2; ScriptList.BorderSizePixel = 0
+Instance.new("UICorner", ScriptList)
+local UIList = Instance.new("UIListLayout", ScriptList); UIList.Padding = UDim.new(0, 5)
+Instance.new("UIPadding", ScriptList).PaddingLeft = UDim.new(0, 5); Instance.new("UIPadding", ScriptList).PaddingTop = UDim.new(0, 5)
+
+-- [ РЕДАКТОР ]
+local Editor = Instance.new("TextBox", Content)
+Editor.Size = UDim2.new(1, -150, 0.78, 0); Editor.Position = UDim2.new(0, 150, 0, 0)
+Editor.BackgroundColor3 = Color3.fromRGB(5, 5, 5); Editor.Text = ""
+Editor.PlaceholderText = "EXECUTOR BY ERSULTANKZ430 V8.0"
+Editor.PlaceholderColor3 = Color3.fromRGB(80, 80, 80)
+Editor.TextColor3 = Color3.new(1, 1, 1); Editor.TextSize = 14
+Editor.MultiLine = true; Editor.TextWrapped = true; Editor.ClearTextOnFocus = false
+Editor.TextXAlignment = "Left"; Editor.TextYAlignment = "Top"; Editor.Font = Enum.Font.Code
+Instance.new("UICorner", Editor); Instance.new("UIPadding", Editor).PaddingLeft = UDim.new(0, 10); Instance.new("UIPadding", Editor).PaddingTop = UDim.new(0, 10)
+
+-- [ КНОПКИ СВЕРНУТЬ/ЗАКРЫТЬ ]
+local Close = Instance.new("TextButton", Main)
+Close.Size = UDim2.new(0, 22, 0, 22); Close.Position = UDim2.new(1, -27, 0, 5); Close.Text = "X"
+Close.BackgroundColor3 = Color3.fromRGB(180, 0, 0); Close.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", Close)
+Close.MouseButton1Click:Connect(function() Screen:Destroy() end)
+
+local Min = Instance.new("TextButton", Main)
+Min.Size = UDim2.new(0, 22, 0, 22); Min.Position = UDim2.new(1, -54, 0, 5); Min.Text = "-"
+Min.BackgroundColor3 = Color3.fromRGB(40, 40, 40); Min.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", Min)
+
+-- [ ИСПРАВЛЕННАЯ ФУНКЦИЯ СЛОТОВ ]
+local slotCount = 0
+local function AddSlot(name, textToSave)
+    slotCount = slotCount + 1
+    local codeSnapshot = textToSave -- Фиксируем текст именно для этого слота
+    
+    local btn = Instance.new("TextButton", ScriptList)
+    btn.Size = UDim2.new(0.92, 0, 0, 35); btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    btn.Text = name or "Slot " .. slotCount; btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = Enum.Font.Gotham
+    Instance.new("UICorner", btn)
+    
+    btn.MouseButton1Click:Connect(function()
+        Editor.Text = codeSnapshot -- При нажатии вставляем сохраненную копию
+    end)
+end
+
 local function CreateBtn(txt, col, xPos, xSize)
     local b = Instance.new("TextButton", Content)
-    b.Text = txt; b.BackgroundColor3 = col
-    b.Size = UDim2.new(xSize, -5, 0, isMobile and 40 or 32)
-    b.Position = UDim2.new(xPos, 0, 0.82, 5)
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = isMobile and 14 or 12
+    b.Text = txt; b.BackgroundColor3 = col; b.Size = UDim2.new(xSize, -5, 0, 35)
+    b.Position = UDim2.new(xPos, 0, 0.82, 0); b.Font = Enum.Font.GothamBold; b.TextColor3 = Color3.new(1, 1, 1)
     Instance.new("UICorner", b)
     return b
 end
 
-local ExecBtn = CreateBtn("EXECUTE", Color3.fromRGB(0, 170, 255), 0, 0.4)
-local ClearBtn = CreateBtn("CLEAR", Color3.fromRGB(50, 50, 50), 0.4, 0.3)
-local SlotBtn = CreateBtn("NEW SLOT", Color3.fromRGB(30, 100, 200), 0.7, 0.3)
+local ExecBtn = CreateBtn("EXECUTE", Color3.fromRGB(0, 170, 255), 0, 0.3)
+local ClearBtn = CreateBtn("CLEAR", Color3.fromRGB(50, 50, 50), 0.3, 0.25)
+local SlotBtn = CreateBtn("NEW SLOT", Color3.fromRGB(30, 100, 200), 0.55, 0.25)
+local ColorBtn = CreateBtn("COLOR", Color3.fromRGB(120, 50, 180), 0.8, 0.2)
 
--- КНОПКИ УПРАВЛЕНИЯ
-local Close = Instance.new("TextButton", Main)
-Close.Size = UDim2.new(0, 25, 0, 25); Close.Position = UDim2.new(1, -30, 0, 5)
-Close.Text = "X"; Close.BackgroundColor3 = Color3.fromRGB(180, 0, 0); Close.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Close)
-
-local Min = Instance.new("TextButton", Main)
-Min.Size = UDim2.new(0, 25, 0, 25); Min.Position = UDim2.new(1, -60, 0, 5)
-Min.Text = "-"; Min.BackgroundColor3 = Color3.fromRGB(40, 40, 40); Min.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", Min)
-
--- [ ЛОГИКА КНОПОК ]
-SlotBtn.MouseButton1Click:Connect(function()
-    AddSlot(nil, Editor.Text) -- Создает слот с текущим текстом из редактора
-end)
-
+-- [ ЛОГИКА ]
 ClearBtn.MouseButton1Click:Connect(function() Editor.Text = "" end)
-
 ExecBtn.MouseButton1Click:Connect(function()
-    local f, e = loadstring(Editor.Text)
-    if f then pcall(f) else warn("Err: "..e) end
+    local f, e = loadstring(Editor.Text); if f then pcall(f) else warn(e) end
 end)
 
-local minSize = UDim2.new(0, 100, 0, 35)
+-- ГЛАВНОЕ ИСПРАВЛЕНИЕ ТУТ:
+SlotBtn.MouseButton1Click:Connect(function()
+    local textToRecord = Editor.Text -- Сначала берем текст
+    AddSlot(nil, textToRecord)       -- Потом создаем слот с этим текстом
+    Editor.Text = ""                 -- В конце очищаем
+end)
+
+ColorBtn.MouseButton1Click:Connect(function()
+    local c = Color3.fromHSV(math.random(), 0.7, 0.9)
+    ExecBtn.BackgroundColor3 = c; ClearBtn.BackgroundColor3 = c
+    SlotBtn.BackgroundColor3 = c; ColorBtn.BackgroundColor3 = c
+end)
+
 local minimized = false
 Min.MouseButton1Click:Connect(function()
     minimized = not minimized
-    Content.Visible = not minimized
-    SideBar.Visible = not minimized
-    Main:TweenSize(minimized and minSize or mainSize, "Out", "Quad", 0.2, true)
+    Content.Visible = not minimized; SideBar.Visible = not minimized
+    Main:TweenSize(minimized and UDim2.new(0, 110, 0, 35) or mainSize, "Out", "Quad", 0.3, true)
 end)
 
--- Добавим один слот по умолчанию
-AddSlot("Main Slot", "-- Привет! Напиши код и нажми New Slot")
+AddSlot("Main Slot", "-- Ersultan V9 Final")
